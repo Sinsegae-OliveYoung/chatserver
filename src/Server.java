@@ -9,7 +9,6 @@ import javax.swing.JFrame;
 
 public class Server extends JFrame{
 	
-	int index = 1;  // 서버스레드 번호
 	ServerSocket server;
 	Vector<ChatServerThread> vec;
 	Thread thread;
@@ -34,7 +33,7 @@ public class Server extends JFrame{
 				Socket socket = server.accept();
 				System.out.println("접속 감지");
 				
-				ChatServerThread serverThread = new ChatServerThread(this, socket, index++);
+				ChatServerThread serverThread = new ChatServerThread(this, socket);
 				vec.add(serverThread);
 				serverThread.start();
 			}
