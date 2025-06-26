@@ -49,19 +49,27 @@ public class ChatServerThread extends Thread{
 				ChatRoom room = server.map.get(p.getSender().getBranch_id());
 				
 				// requestType이 "connect"인지 "message"인지 "disconnect"인지 파악 
-				if(p.getRequestType().equals("connect")) {
-					room.vec.add(this);
+				if(p.getRequestType().equals("connect") && !room.vec.contains(this)) {
+
+				    	room.vec.add(this);
+					
+				    p.setData(p.getSender().getUser_name() + "님이 입장하셨습니다.");
+				    String json = gson.toJson(p);
+
+				    // 입장 메시지를 전체 사용자에게 전송
+				    for (ChatServerThread serverThread : room.vec) {
+				        serverThread.send(json);
+				    }
+				    continue;
 				}
 				else if (p.getRequestType().equals("disconnect")) {
 					room.vec.remove(this);
 				}
-				else {
-					
-					for(int i = 0; i < room.vec.size(); i++) {
-						ChatServerThread serverThread = room.vec.get(i);
-						if(serverThread == this) { continue; } //자기 자신은 빼고 다른 클라이언트에게 전달
-						serverThread.send(jsonStr);
-					}
+				
+				for(int i = 0; i < room.vec.size(); i++) {
+					ChatServerThread serverThread = room.vec.get(i);
+					if(serverThread == this) { continue; } //자기 자신은 빼고 다른 클라이언트에게 전달
+					serverThread.send(jsonStr);
 				}
 			} catch (SocketException e) {
 				System.out.println("클라이언트 연결 종료됨: " + e.getMessage());
@@ -78,7 +86,7 @@ public class ChatServerThread extends Thread{
 			bw.write(jsonStr + "\n");
 			bw.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("클라이언트 연결 종료됨: " + e.getMessage());
 		}
 	}
 
