@@ -4,21 +4,25 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+
+import com.google.gson.Gson;
 
 public class ChatServerThread extends Thread{
 	
-	int index;
 	Server server;
 	Socket socket;
 	BufferedReader br;
 	BufferedWriter bw;
+	Gson gson;
 	
-	public ChatServerThread(Server server, Socket socket, int index) {
+	boolean flag = true;
+	
+	public ChatServerThread(Server server, Socket socket) {
 		this.server = server;
 		this.socket = socket;
-		this.index = index;  // 서버의 숫자 
+		gson = new Gson();
 		
 		try {
 			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -34,34 +38,50 @@ public class ChatServerThread extends Thread{
 		listen();
 	}
 	
-	
 	//클라이언트로부터 메시지 수신 대기 
 	// 수신을 하면 이걸 다른 클라이언트에게 전송해야함. 
 	public void listen() {
-		while(true) {
+		
+		while(flag) {
 			try {
-				String msg = br.readLine();
-				System.out.println("서버스레드" + index + " 메시지 수신: " + msg );
+				String jsonStr = br.readLine();
+				Payload p = gson.fromJson(jsonStr, Payload.class);
+				ChatRoom room = server.map.get(p.getSender().getBranch_id());
 				
-				// 여기서 다른 서버스레드의 send를 호출해서 다른 클라이언트에도 메시지를 전송  
-				for(int i = 0; i < server.vec.size(); i++) {
-					ChatServerThread serverThread = server.vec.get(i);
-					serverThread.send(msg);
+				// requestType이 "connect"인지 "message"인지 "disconnect"인지 파악 
+				if(p.getRequestType().equals("connect")) {
+					room.vec.add(this);
 				}
-
-			} catch (IOException e) {
+				else if (p.getRequestType().equals("disconnect")) {
+					room.vec.remove(this);
+				}
+				else {
+					
+					for(int i = 0; i < room.vec.size(); i++) {
+						ChatServerThread serverThread = room.vec.get(i);
+						if(serverThread == this) { continue; } //자기 자신은 빼고 다른 클라이언트에게 전달
+						serverThread.send(jsonStr);
+					}
+				}
+			} catch (SocketException e) {
+				System.out.println("클라이언트 연결 종료됨: " + e.getMessage());
+				flag = false;
+			}catch (IOException e) {
 				e.printStackTrace();
-			} 
+				flag = false;
+			}
 		}
 	}
 	
-	// 한 클라이언트에만 전송하는것이다. 지금은 
-	public void send(String msg) {
+	public void send(String jsonStr) {
 		try {
-			bw.write(msg + "\n");
+			bw.write(jsonStr + "\n");
 			bw.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
+
+	
+	
 }
