@@ -55,6 +55,11 @@ public class ChatServerThread extends Thread{
 				else if (p.getRequestType().equals("disconnect")) {
 					room.vec.remove(this);
 				}
+				// file 전송 => 
+				
+				
+				
+				
 				else {
 					
 					for(int i = 0; i < room.vec.size(); i++) {
