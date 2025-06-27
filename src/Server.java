@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.JFrame;
 
@@ -18,6 +19,7 @@ public class Server extends JFrame{
 	
 	ServerSocket server;
 	Map<Integer, ChatRoom> map = new HashMap<>();  // branchId, chatroom
+	Map<Integer, ChatServerThread> loginUser = new ConcurrentHashMap<>();	// 로그인 한 유저를 저장함
 	Thread thread;
 	DBManager dbManager = DBManager.getInstance();
 	List<Branch> branchList;
